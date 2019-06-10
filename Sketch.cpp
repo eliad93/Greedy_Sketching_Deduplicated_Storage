@@ -65,7 +65,7 @@ Sketch::Sketch(const string& path) :
 
 
 bool Sketch::contains(const SBlock& block) const{
-    return blocks.
+    return std::find(blocks.begin(), blocks.end(), block) != blocks.end();
 }
 
 // algorithms //
@@ -125,6 +125,10 @@ Sketch::SBlock::SBlock(const string& line){
     }
 }
 
+bool Sketch::SBlock::operator==(SBlock const& sBlock) const {
+    return objectId == sBlock.getObjectId();
+}
+
 // getters //
 const vector<int>& Sketch::SBlock::getFiles() const {
     return files;
@@ -132,6 +136,10 @@ const vector<int>& Sketch::SBlock::getFiles() const {
 
 const int Sketch::SBlock::getSerialNumber() const {
     return serialNumber;
+}
+
+const string& Sketch::SBlock::getObjectId() const{
+    return objectId;
 }
 
 const int Sketch::SBlock::getRefCount() const {

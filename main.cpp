@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "Sketch.h"
+#include "ArgumentsParser.h"
 
 using std::vector;
 using std::string;
@@ -14,10 +15,12 @@ using std::cout;
 using std::endl;
 using std::getline;
 
-int main() {
+int main(int argc, char* argv[]) {
+    ArgumentsParser argumentsParser(argc, argv);
 
-    Sketch sketch(R"(C:\Users\eliad\Downloads\B_heuristic_depth10_002_002.csv)");
+    Sketch sketch(argumentsParser.getFilePath());
     sketch.print();
     cout << sketch.calculateReclaimable() << endl;
+    cout << sketch.calculateSpaceInTargetSystem(sketch) << endl;
     return 0;
 }

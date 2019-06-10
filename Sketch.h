@@ -28,9 +28,9 @@ private:
     class SBlock{
     private:
         int serialNumber;
-        string objectId;
-        int refCount;  // todo: is this redundant?
-        vector<int> files;
+        string objectId;  // not relevant for now
+        int refCount;  // todo: calculate this - not from sketch itself
+        vector<int> files;  // todo: ignore this for calculations
         double compRatio = -1;
     public:
         // static constants //
@@ -40,10 +40,12 @@ private:
         // standard public methods //
         explicit SBlock(const string& line);
         SBlock(const SBlock&) = default;
-        SBlock& operator=(SBlock const& ) = default;
+        SBlock& operator=(SBlock const&) = default;
+        bool operator==(SBlock const&) const;
         // getters //
         const vector<int> &getFiles() const;
         const int getSerialNumber() const;
+        const string& getObjectId() const;
         const int getRefCount() const;
         const double getCompRatio() const;
     };
@@ -53,7 +55,7 @@ private:
         string fileId;
         int paretDirSN; // todo: necessary?
         int numBaseObjects;
-        map<int, int> baseObjects; // todo: necessary?
+        map<int, int> baseObjects; // these are the blocks
         map<int, SBlock> blocks;
     public:
         // standard public methods //
