@@ -69,10 +69,18 @@ bool Sketch::contains(const SBlock& block) const{
 }
 
 // algorithms //
-double Sketch::calculateReclaimable(){
+int Sketch::blockRefCount(SBlock& block) const {
+//    int refCount = 0;
+//    for(const auto& iter: filesMap){
+//        refCount += iter.second.blockRefCount(block);
+//    }
+//    return refCount;
+}
+
+double Sketch::calculateReclaimable(Sketch& full){
     double reclaimable = 0;
     for(SBlock& block: blocks){
-        if(block.getRefCount() == 1){ //todo: review
+        if(blockRefCount(block) == full.blockRefCount(block)){
             reclaimable += block.getCompRatio() *
                            SBlock::defaultPhysicalCopies;
         }
@@ -82,7 +90,7 @@ double Sketch::calculateReclaimable(){
 
 double Sketch::calculateSpaceInTargetSystem(Sketch& target){
     double targetSpace = 0;
-    for(SBlock& block: blocks){ // todo: review
+    for(SBlock& block: blocks){
         if(!target.contains(block)){
             targetSpace += block.getCompRatio();
         }
@@ -150,6 +158,7 @@ const double Sketch::SBlock::getCompRatio() const{
    if(compRatio == -1){
        return defaultCompRatio;
    }
+    return compRatio;
 }
 
 ///////////////////////////////////////
@@ -179,6 +188,11 @@ blocks(){
 
 void Sketch::SFile::addBlock(SBlock& block){
     blocks.insert(std::make_pair(block.getSerialNumber(), block));
+}
+
+// algorithms //
+bool Sketch::SFile::contains(SBlock& block) const {
+//    return baseObjects.find(block.getObjectId()) != baseObjects.end();
 }
 
 // getters //

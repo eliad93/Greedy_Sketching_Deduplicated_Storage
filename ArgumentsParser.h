@@ -24,7 +24,7 @@ private:
 
     vector<string> arguments;
     string filePath;
-    int M;
+    double M;
     double epsilon;
 
 public:
@@ -34,7 +34,7 @@ public:
             arguments.emplace_back(string(argv[i]));
         }
         filePath = arguments[argFile];
-        M = stoi(arguments[argM]);
+        M = stod(arguments[argM]);
         epsilon = stod(arguments[argEpsilon]);
     }
 
@@ -42,7 +42,7 @@ public:
         return filePath;
     }
 
-    const int getM() const {
+    const double getM() const {
         return M;
     }
 

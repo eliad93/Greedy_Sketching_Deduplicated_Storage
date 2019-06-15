@@ -61,6 +61,8 @@ private:
         // standard public methods //
         explicit SFile(string& line);
         void addBlock(SBlock& block);
+        // algorithms //
+        bool contains(SBlock& block) const;
         // getters //
         const string &getFileId() const;
         const int getSerialNumber() const;
@@ -69,7 +71,7 @@ private:
     string path;
     map<int, SFile> filesMap;
     vector<string> PLines;
-    vector<SBlock> blocks;
+    vector<SBlock> blocks;  // todo: should be a hash
     vector<string> DLines;
     vector<string> RLines;
     // private methods //
@@ -80,7 +82,8 @@ public:
     explicit Sketch(const string& path);
     bool contains(const SBlock& block) const;
     // algorithms //
-    double calculateReclaimable();
+    int blockRefCount(SBlock& block) const;
+    double calculateReclaimable(Sketch& full);
     double calculateSpaceInTargetSystem(Sketch& target);
     // helper functions //
     void print();
