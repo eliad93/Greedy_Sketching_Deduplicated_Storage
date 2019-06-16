@@ -3,6 +3,3 @@
 //
 
 #include "System.h"
-
-const double System::blocksCompRatio = 1;
-const int System::blocksPhysicalCount = 1;

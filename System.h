@@ -30,10 +30,8 @@ class System {
 
     using File = unordered_map<int, bool>;
 
-    static const double blocksCompRatio;
-    static const int blocksPhysicalCount;
-
-    static const int ARG_FILES_NUM_IDX = 1;
+    static constexpr double blocksCompRatio = 1;
+    static const int blocksPhysicalCount = 1;
 
     struct BLine {
         int id;
