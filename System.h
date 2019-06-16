@@ -80,9 +80,10 @@ private:
                 if(lineNumber > 5){
                     if(line[0] == 'F'){
                         FLine fLine(line);
-                        File& file = files[fLine.id];
+                        File* file = new File();
+                        files[fLine.id] = file;
                         for(int blockId: fLine.blocks){
-                            file[blockId] = true;
+                            (*file)[blockId] = true;
                         }
                     } else if(line[0] == 'B') {
                         BLine bLine(line);
@@ -90,30 +91,15 @@ private:
                     }
                 } else {
                     if(lineNumber == 3){
-                        numFiles = std::stoi((line.begin()+13).base());
-                        files = new File[numFiles];
+                        filesArraySize = std::stoi((line.begin()+13).base());
+                        files = new File*[filesArraySize];
                     } else if(lineNumber == 5){
-                        numBlocks = std::stoi((line.begin()+14).base());
-                        blocks = new int[numBlocks];
+                        blocksArraySize = std::stoi((line.begin()+14).base());
+                        blocks = new int[blocksArraySize];
                     }
                 }
             }
             lineNumber++;
-        }
-    }
-
-    void initBlocks(vector<BLine>& bLines){
-        for(auto& bLine: bLines){
-            blocks[bLine.id] = bLine.refCount;
-        }
-    }
-
-    void initFiles(vector<FLine>& fLines){
-        for(auto& fLine: fLines){
-            File& file = files[fLine.id];
-            for(int blockId: fLine.blocks){
-                file[blockId] = true;
-            }
         }
     }
 
@@ -122,8 +108,8 @@ public:
     System() = default;
 
     explicit System(const string& path) :
-        numFiles(0),
-        numBlocks(0){
+        filesArraySize(0),
+        blocksArraySize(0){
         ifstream input_csv(path);
         if(!input_csv.is_open()){
             cout << "ERROR: File open failed" << endl;
@@ -134,31 +120,38 @@ public:
     }
 
     ~System(){
-        delete[] files;
+        if(files){
+            for(int i=0; i<filesArraySize; i++){
+                if(files[i]){
+                    delete files[i];
+                }
+            }
+            delete[] files;
+        }
         delete[] blocks;
     }
 
     int blockRefCount(int blockId) const {
         assert(blockId >= 0);
-        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        return blocks != nullptr && blockId <= blocksArraySize + 1 ?
         blocks[blockId] : 0;
     }
 
     double getCompRatio(int blockId) const {
         assert(blockId >= 0);
-        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        return blocks != nullptr && blockId <= blocksArraySize + 1 ?
         blocksCompRatio : 0;
     }
 
     int blockPhysicalCount(int blockId) const {
         assert(blockId >= 0);
-        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        return blocks != nullptr && blockId <= blocksArraySize + 1 ?
         blocksPhysicalCount : 0;
     }
 
     double calculateReclaimable(System& full){
         double reclaimable = 0;
-        for(int blockId=0; blockId < numBlocks; blockId++){
+        for(int blockId=0; blockId < blocksArraySize; blockId++){
             if(blockRefCount(blockId) == full.blockRefCount(blockId)){
                 reclaimable += getCompRatio(blockId) *
                         blockPhysicalCount(blockId);
@@ -182,7 +175,7 @@ public:
 
     double calculateSpaceInTargetSystem(System& target){
         double targetSpace = 0;
-        for(int blockId=0; blockId < numBlocks; blockId++){
+        for(int blockId=0; blockId < blocksArraySize; blockId++){
             if(!target.containsBlock(blockId)){
                 targetSpace += getCompRatio(blockId);
             }
@@ -203,43 +196,59 @@ public:
     }
 
     void reclaimGreedy(System& target, double M, double epsilon){
-        double reclaimed = 0, originalSpace = numBlocks,
+        double reclaimed = 0, originalSpace = blocksArraySize,
         savePercentage = 0;
         while(savePercentage < (M / 100)){
             double bestSavingRatio = 0, currentReclaim = 0;
             int bestReclaimId = -1;
-            for(int i=0; i<numFiles; i++){
-                File& file = files[i];
-                double reclaim = calculateReclaimable(file);
-                double targetSpace = target.calculateSpace(file);
-                double savingRatio = reclaim / targetSpace;
-                if(savingRatio > bestSavingRatio){
-                    bestReclaimId = i;
-                    bestSavingRatio = savingRatio;
-                    currentReclaim = reclaim;
+            for(int i=0; i<filesArraySize; i++){
+                if(files[i]){
+                    File file = *files[i];
+                    double reclaim = calculateReclaimable(file);
+                    double targetSpace = target.calculateSpace(file);
+                    double savingRatio = reclaim / targetSpace;
+                    if(savingRatio > bestSavingRatio){
+                        bestReclaimId = i;
+                        bestSavingRatio = savingRatio;
+                        currentReclaim = reclaim;
+                    }
                 }
             }
-            reclaimed += currentReclaim;
-            savePercentage = reclaimed / originalSpace;
+            if(bestReclaimId != -1){
+                migrateVolume(target, bestReclaimId);
+                reclaimed += currentReclaim;
+                savePercentage = reclaimed / originalSpace;
+            }
         }
         cout << "reclaimed = " << reclaimed << endl;
         cout << "savePercentage = " << savePercentage << endl;
     }
 
+    void migrateVolume(System& target, int fileId){
+        assert(fileId >= 0);
+        if(fileId + 1 > filesArraySize){
+            return;
+        }
+        File* file = files[fileId];
+        if(!file){
+            return;
+        }
+    }
+
     bool containsBlock(int blockId) const {
         assert(blockId >= 0);
-        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        return blocks != nullptr && blockId <= blocksArraySize + 1 ?
         blocks[blockId] > 0 : false;
     }
 
 private:
     // pairs of {fileId, blocks}
     // blocks is a pair of {blockId, refCount}
-    File* files = nullptr;
-    unsigned int numFiles = 0;
+    File** files = nullptr;
+    unsigned int filesArraySize = 0;
     // pairs of {blockId, refCount}
     int* blocks = nullptr;
-    unsigned int numBlocks = 0;
+    unsigned int blocksArraySize = 0;
 };
 
 
