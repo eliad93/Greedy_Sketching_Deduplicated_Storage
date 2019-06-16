@@ -20,6 +20,7 @@ using std::endl;
 using std::vector;
 using std::unordered_map;
 using std::list;
+using std::array;
 
 using std::string;
 using std::ifstream;
@@ -27,8 +28,12 @@ using std::stringstream;
 
 class System {
 
+    using File = unordered_map<int, bool>;
+
     static const double blocksCompRatio;
     static const int blocksPhysicalCount;
+
+    static const int ARG_FILES_NUM_IDX = 1;
 
     struct BLine {
         int id;
@@ -68,44 +73,48 @@ class System {
 
 private:
 
-    void countProcessObjects(ifstream& input_csv, int& blocksNum,
-            int& filesNum, vector<BLine>& bLines, vector<FLine>& flines){
+    void initObjects(ifstream& input_csv){
         string line;
-        int blocksCount=0, filesCount=0;
+        int lineNumber = 0;
         while(input_csv.good()){
             getline(input_csv, line, '\n');
             if(!line.empty()){
-                switch(line[0]){
-                    case 'F':
-                        flines.emplace_back(line);
-                        filesCount++;
-                        break;
-                    case 'B':
-                        bLines.emplace_back(line);
-                        blocksCount++;
-                        break;
-                    default:
-                        break;
+                if(lineNumber > 5){
+                    if(line[0] == 'F'){
+                        FLine fLine(line);
+                        File& file = files[fLine.id];
+                        for(int blockId: fLine.blocks){
+                            file[blockId] = true;
+                        }
+                    } else if(line[0] == 'B') {
+                        BLine bLine(line);
+                        blocks[bLine.id] = bLine.refCount;
+                    }
+                } else {
+                    if(lineNumber == 3){
+                        numFiles = std::stoi((line.begin()+13).base());
+                        files = new File[numFiles];
+                    } else if(lineNumber == 5){
+                        numBlocks = std::stoi((line.begin()+14).base());
+                        blocks = new int[numBlocks];
+                    }
                 }
             }
+            lineNumber++;
         }
-        blocksNum = blocksCount;
-        filesNum = filesCount;
     }
 
     void initBlocks(vector<BLine>& bLines){
-        blocks = unordered_map<int, int>(bLines.size());
         for(auto& bLine: bLines){
             blocks[bLine.id] = bLine.refCount;
         }
     }
 
     void initFiles(vector<FLine>& fLines){
-        files = unordered_map<int, unordered_map<int, int>>(fLines.size());
         for(auto& fLine: fLines){
-            unordered_map<int, int>& file = files[fLine.id];
+            File& file = files[fLine.id];
             for(int blockId: fLine.blocks){
-                file[blockId]++;
+                file[blockId] = true;
             }
         }
     }
@@ -114,41 +123,44 @@ public:
 
     System() = default;
 
-    explicit System(const string& path){
+    explicit System(const string& path) :
+        numFiles(0),
+        numBlocks(0){
         ifstream input_csv(path);
         if(!input_csv.is_open()){
             cout << "ERROR: File open failed" << endl;
         }
-        int blocksNum, filesNum;
         vector<BLine> bLines;
         vector<FLine> fLines;
-        countProcessObjects(input_csv, blocksNum, filesNum, bLines, fLines);
-        initBlocks(bLines);
-        initFiles(fLines);
+        initObjects(input_csv);
+    }
+
+    ~System(){
+        delete[] files;
+        delete[] blocks;
     }
 
     int blockRefCount(int blockId) const {
         assert(blockId >= 0);
-        const auto iter = blocks.find(blockId);
-        int refCount = iter != blocks.end() ? iter->second : 0;
-        return refCount;
+        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        blocks[blockId] : 0;
     }
 
     double getCompRatio(int blockId) const {
         assert(blockId >= 0);
-        const auto iter = blocks.find(blockId);
-        return iter != blocks.end() ? blocksCompRatio : 0;
+        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        blocksCompRatio : 0;
     }
 
     int blockPhysicalCount(int blockId) const {
         assert(blockId >= 0);
-        const auto iter = blocks.find(blockId);
-        return iter != blocks.end() ? blocksPhysicalCount : 0;
+        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        blocksPhysicalCount : 0;
     }
 
     double calculateReclaimable(System& full){
         double reclaimable = 0;
-        for(int blockId=0; blockId < blocks.size(); blockId++){
+        for(int blockId=0; blockId < numBlocks; blockId++){
             if(blockRefCount(blockId) == full.blockRefCount(blockId)){
                 reclaimable += getCompRatio(blockId) *
                         blockPhysicalCount(blockId);
@@ -157,7 +169,7 @@ public:
         return reclaimable;
     }
 
-    double calculateReclaimable(unordered_map<int, int>& file){
+    double calculateReclaimable(File& file){
         double reclaimable = 0;
         for(auto& block: file){ // block is a pair {blockId, refCount}
             int blockId = block.first;
@@ -172,7 +184,7 @@ public:
 
     double calculateSpaceInTargetSystem(System& target){
         double targetSpace = 0;
-        for(int blockId=0; blockId < blocks.size(); blockId++){
+        for(int blockId=0; blockId < numBlocks; blockId++){
             if(!target.containsBlock(blockId)){
                 targetSpace += getCompRatio(blockId);
             }
@@ -180,7 +192,7 @@ public:
         return targetSpace;
     }
 
-    double calculateSpace(unordered_map<int, int>& file){
+    double calculateSpace(File& file){
         double targetSpace = 0;
         for(auto& block: file){ // block is a pair {blockId, refCount}
             int blockId = block.first;
@@ -193,19 +205,18 @@ public:
     }
 
     void reclaimGreedy(System& target, double M, double epsilon){
-        double reclaimed = 0, originalSpace = blocks.size(),
+        double reclaimed = 0, originalSpace = numBlocks,
         savePercentage = 0;
         while(savePercentage < (M / 100)){
             double bestSavingRatio = 0, currentReclaim = 0;
             int bestReclaimId = -1;
-            for(auto& iter: files){
-                int fileId = iter.first;
-                auto& file = iter.second;
+            for(int i=0; i<numFiles; i++){
+                File& file = files[i];
                 double reclaim = calculateReclaimable(file);
                 double targetSpace = target.calculateSpace(file);
                 double savingRatio = reclaim / targetSpace;
                 if(savingRatio > bestSavingRatio){
-                    bestReclaimId = fileId;
+                    bestReclaimId = i;
                     bestSavingRatio = savingRatio;
                     currentReclaim = reclaim;
                 }
@@ -218,15 +229,19 @@ public:
     }
 
     bool containsBlock(int blockId) const {
-        return blocks.find(blockId) != blocks.end();
+        assert(blockId >= 0);
+        return blocks != nullptr && blockId <= numBlocks + 1 ?
+        blocks[blockId] > 0 : false;
     }
 
 private:
     // pairs of {fileId, blocks}
     // blocks is a pair of {blockId, refCount}
-    unordered_map<int, unordered_map<int, int>> files;
+    File* files = nullptr;
+    unsigned int numFiles = 0;
     // pairs of {blockId, refCount}
-    unordered_map<int, int> blocks;
+    int* blocks = nullptr;
+    unsigned int numBlocks = 0;
 };
 
 
