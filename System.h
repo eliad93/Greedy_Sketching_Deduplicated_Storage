@@ -13,6 +13,9 @@
 #include <list>
 #include <sstream>
 #include <cassert>
+#include <cfloat>
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 using std::cout;
 using std::endl;
@@ -25,6 +28,7 @@ using std::array;
 using std::string;
 using std::ifstream;
 using std::stringstream;
+
 
 class System {
 
@@ -189,7 +193,7 @@ public:
         return targetSpace;
     }
 
-    double calculateSpace(File& file){
+    double calculateSpaceInTargetSystem(File& file){
         double targetSpace = 0;
         for(auto& block: file){ // block is a pair {blockId, refCount}
             int blockId = block.first;
@@ -201,33 +205,48 @@ public:
         return targetSpace;
     }
 
+    inline bool canMigrate(double M, double epsilon, double originalSpace,
+            double reclaimed, double reclaimAddition) const {
+        return ((reclaimed + reclaimAddition) / originalSpace)
+        <= ((M + epsilon) / 100);
+    }
+
     void reclaimGreedy(System& target, double M, double epsilon){
-        double reclaimed = 0, originalSpace = blocksArraySize,
-        savePercentage = 0;
-        while(savePercentage < (M / 100)){
-            double bestSavingRatio = 0, currentReclaim = 0;
-            int bestReclaimId = -1;
+        double reclaimed = 0, copied = 0, originalSpace = blocksArraySize,
+        moved = 0;
+        int bestReclaimId = 0, iterations = 0;
+        if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
+            return;
+        }
+        while(bestReclaimId != -1){
+            iterations++;
+            double bestSavingRatio = DBL_MAX, bestReclaim = 0,
+                    bestCopied = 0;
+            bestReclaimId = -1;
             for(int i=0; i<filesArraySize; i++){
                 if(files[i]){
                     File file = *files[i];
-                    double reclaim = calculateReclaimable(file);
-                    double targetSpace = target.calculateSpace(file);
-                    double savingRatio = reclaim / targetSpace;
-                    if(savingRatio > bestSavingRatio){
+                    double currentReclaim = calculateReclaimable(file),
+                    currentCopied = target.calculateSpaceInTargetSystem(file),
+                    savingRatio = currentCopied / MAX(1.0, currentReclaim);
+                    if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
+                            originalSpace, reclaimed, currentReclaim)){
                         bestReclaimId = i;
                         bestSavingRatio = savingRatio;
-                        currentReclaim = reclaim;
+                        bestReclaim = currentReclaim;
+                        bestCopied = currentCopied;
                     }
                 }
             }
             if(bestReclaimId != -1){
                 migrateVolume(target, bestReclaimId);
-                reclaimed += currentReclaim;
-                savePercentage = reclaimed / originalSpace;
+                reclaimed += bestReclaim;
+                copied += bestCopied;
+                moved = reclaimed / originalSpace;
             }
         }
         cout << "reclaimed = " << reclaimed << endl;
-        cout << "savePercentage = " << savePercentage << endl;
+        cout << "moved = " << moved << endl;
     }
 
     void migrateVolume(System& target, int fileId){
