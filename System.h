@@ -81,6 +81,7 @@ private:
                     if(line[0] == 'F'){
                         FLine fLine(line);
                         File* file = new File();
+                        assert(files[fLine.id]== nullptr);
                         files[fLine.id] = file;
                         for(int blockId: fLine.blocks){
                             (*file)[blockId] = true;
@@ -92,7 +93,7 @@ private:
                 } else {
                     if(lineNumber == 3){
                         filesArraySize = std::stoi((line.begin()+13).base());
-                        files = new File*[filesArraySize];
+                        files = new File*[filesArraySize]();
                     } else if(lineNumber == 5){
                         blocksArraySize = std::stoi((line.begin()+14).base());
                         blocks = new int[blocksArraySize];
@@ -105,7 +106,12 @@ private:
 
 public:
 
-    System() = default;
+    System(int filesArraySize, int blocksArraySize):
+        filesArraySize(filesArraySize),
+        blocksArraySize(blocksArraySize){
+        files = new File*[filesArraySize]();
+        blocks = new int[blocksArraySize]();
+    }
 
     explicit System(const string& path) :
         filesArraySize(0),
@@ -232,6 +238,34 @@ public:
         File* file = files[fileId];
         if(!file){
             return;
+        }
+        for(auto& iter: *file){
+            bool blockFound = iter.second;
+            if(blockFound){
+                int blockId = iter.first;
+                assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
+                blocks[blockId]>0);
+                blocks[blockId]--;
+            }
+        }
+        target.addVolume(fileId, file);
+        files[fileId] = nullptr;
+    }
+
+    void addVolume(int fileId, File* file){
+        assert(fileId >= 0 && fileId + 1 <= filesArraySize);
+        if(!file){
+            return;
+        }
+        files[fileId] = file;
+        for(auto& iter: *file){
+            bool blockFound = iter.second;
+            if(blockFound){
+                int blockId = iter.first;
+                assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
+                       blocks[blockId] >= 0);
+                blocks[blockId]++;
+            }
         }
     }
 

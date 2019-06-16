@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 
     cout << system1.calculateReclaimable(system1) << endl;
     cout << system1.calculateSpaceInTargetSystem(system1) << endl;
-    System system2;
+    System system2(36, 268);
     system1.reclaimGreedy(system2, argumentsParser.getM(),
             argumentsParser.getEpsilon());
     return 0;
