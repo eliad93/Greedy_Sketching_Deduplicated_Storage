@@ -14,6 +14,8 @@
 #include <sstream>
 #include <cassert>
 #include <cfloat>
+#include <ctime>
+#include <chrono>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -85,12 +87,12 @@ private:
                     if(line[0] == 'F'){
                         FLine fLine(line);
                         File* file = new File();
-                        assert(files[fLine.id]== nullptr);
+                        assert(files[fLine.id] == nullptr);
                         files[fLine.id] = file;
                         for(int blockId: fLine.blocks){
                             (*file)[blockId] = true;
                         }
-                    } else if(line[0] == 'B') {
+                    } else if(line[0] == 'B' || line[0] == 'C') {
                         BLine bLine(line);
                         blocks[bLine.id] = bLine.refCount;
                     }
@@ -110,7 +112,7 @@ private:
 
 public:
 
-    System(int filesArraySize, int blocksArraySize):
+    System(unsigned int filesArraySize, unsigned int blocksArraySize):
         filesArraySize(filesArraySize),
         blocksArraySize(blocksArraySize){
         files = new File*[filesArraySize]();
@@ -118,8 +120,11 @@ public:
     }
 
     explicit System(const string& path) :
+        path(path),
         filesArraySize(0),
         blocksArraySize(0){
+//        auto ingestBegin = std::chrono::high_resolution_clock::now();
+        clock_t ingestBegin = clock();
         ifstream input_csv(path);
         if(!input_csv.is_open()){
             cout << "ERROR: File open failed" << endl;
@@ -127,6 +132,13 @@ public:
         vector<BLine> bLines;
         vector<FLine> fLines;
         initObjects(input_csv);
+        clock_t ingestEnd = clock();
+//        auto ingestEnd = std::chrono::high_resolution_clock::now();
+//        ingestTime = ingestEnd - ingestBegin;
+//        ingestTime = std::chrono::duration_cast
+//                <std::chrono::microseconds>(ingestEnd - ingestBegin);
+        ingestTime = double(ingestEnd - ingestBegin) / CLOCKS_PER_SEC;
+//        ingestTime = ingestEnd - ingestBegin;
     }
 
     ~System(){
@@ -212,41 +224,81 @@ public:
     }
 
     void reclaimGreedy(System& target, double M, double epsilon){
-        double reclaimed = 0, copied = 0, originalSpace = blocksArraySize,
+        clock_t greedyBegin = clock();
+        double reclaimed = 0, copiedSize = 0, copied = 0, originalSpace = blocksArraySize,
         moved = 0;
         int bestReclaimId = 0, iterations = 0;
+        list<int> filesToMove;
         if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
             return;
         }
         while(bestReclaimId != -1){
             iterations++;
             double bestSavingRatio = DBL_MAX, bestReclaim = 0,
-                    bestCopied = 0;
+                    bestCopiedSize = 0;
             bestReclaimId = -1;
             for(int i=0; i<filesArraySize; i++){
                 if(files[i]){
                     File file = *files[i];
                     double currentReclaim = calculateReclaimable(file),
-                    currentCopied = target.calculateSpaceInTargetSystem(file),
-                    savingRatio = currentCopied / MAX(1.0, currentReclaim);
+                    currentCopiedSize = target.calculateSpaceInTargetSystem(file),
+                    savingRatio = currentCopiedSize / MAX(1.0, currentReclaim);
                     if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
                             originalSpace, reclaimed, currentReclaim)){
                         bestReclaimId = i;
                         bestSavingRatio = savingRatio;
                         bestReclaim = currentReclaim;
-                        bestCopied = currentCopied;
+                        bestCopiedSize = currentCopiedSize;
                     }
                 }
             }
             if(bestReclaimId != -1){
+                filesToMove.emplace_back(bestReclaimId);
                 migrateVolume(target, bestReclaimId);
                 reclaimed += bestReclaim;
-                copied += bestCopied;
+                copiedSize += bestCopiedSize;
+                copied = copiedSize / originalSpace;
                 moved = reclaimed / originalSpace;
             }
         }
-        cout << "reclaimed = " << reclaimed << endl;
-        cout << "moved = " << moved << endl;
+        clock_t greedyEnd = clock();
+        double greedyTime = double(greedyEnd - greedyBegin) / CLOCKS_PER_SEC;
+        // standard output
+        bool success = (moved >= ((M - epsilon) / 100) &&
+                moved <= ((M+epsilon) / 100));
+        if(!success){
+            cout << "Failed migration" << endl;
+        }
+        if(success){
+            cout << "[";
+            for(auto file: filesToMove) {
+                cout << file << " ";
+            }
+            cout << "]" << endl;
+            cout << "moved = " << moved << endl;
+            cout << "copied = " << copied << endl;
+        }
+        // CSV output per run
+        cout << "inputFile = " << getFileName(path) << endl;
+        cout << "numFiles = " << filesArraySize << endl;
+        cout << "numBlocks = " << blocksArraySize << endl;
+        cout << "M = " << M << endl;
+        cout << "epsilon = " << epsilon << endl;
+        cout << "greedyTime = " << greedyTime << endl;
+        cout << "ingestTime = " << ingestTime << endl;
+        cout << "iterations = " << iterations << endl;
+    }
+
+    static string getFileName(const string& path) {
+        char sep = '/';
+        #ifdef _WIN32
+        sep = '\\';
+        #endif
+        size_t i = path.rfind(sep, path.length());
+        if (i != string::npos) {
+            return(path.substr(i+1, path.length() - i));
+        }
+        return("");
     }
 
     void migrateVolume(System& target, int fileId){
@@ -294,7 +346,16 @@ public:
         blocks[blockId] > 0 : false;
     }
 
+    unsigned int getFilesArraySize() const {
+        return filesArraySize;
+    }
+
+    unsigned int getBlocksArraySize() const {
+        return blocksArraySize;
+    }
+
 private:
+    string path;
     // pairs of {fileId, blocks}
     // blocks is a pair of {blockId, refCount}
     File** files = nullptr;
@@ -302,6 +363,7 @@ private:
     // pairs of {blockId, refCount}
     int* blocks = nullptr;
     unsigned int blocksArraySize = 0;
+    double ingestTime = 0;
 };
 
 

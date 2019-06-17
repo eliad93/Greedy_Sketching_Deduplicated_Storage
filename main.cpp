@@ -20,9 +20,7 @@ int main(int argc, char* argv[]) {
     ArgumentsParser argumentsParser(argc, argv);
     System system1(argumentsParser.getFilePath());
 
-    cout << system1.calculateReclaimable(system1) << endl;
-    cout << system1.calculateSpaceInTargetSystem(system1) << endl;
-    System system2(36, 268);
+    System system2(system1.getFilesArraySize(), system1.getBlocksArraySize());
     system1.reclaimGreedy(system2, argumentsParser.getM(),
             argumentsParser.getEpsilon());
     return 0;
