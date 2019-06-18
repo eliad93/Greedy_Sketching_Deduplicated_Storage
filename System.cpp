@@ -20,7 +20,6 @@ System::System(const string& path) :
         path(path),
         filesArraySize(0),
         blocksArraySize(0){
-//        auto ingestBegin = std::chrono::high_resolution_clock::now();
     clock_t ingestBegin = clock();
     ifstream input_csv(path);
     if(!input_csv.is_open()){
@@ -30,12 +29,7 @@ System::System(const string& path) :
     vector<FileLine> fLines;
     initObjects(input_csv);
     clock_t ingestEnd = clock();
-//        auto ingestEnd = std::chrono::high_resolution_clock::now();
-//        ingestTime = ingestEnd - ingestBegin;
-//        ingestTime = std::chrono::duration_cast
-//                <std::chrono::microseconds>(ingestEnd - ingestBegin);
     ingestTime = double(ingestEnd - ingestBegin) / CLOCKS_PER_SEC;
-//        ingestTime = ingestEnd - ingestBegin;
 }
 
 System::~System(){
