@@ -3,7 +3,6 @@
 #include <sstream>
 #include <fstream>
 
-#include "Sketch.h"
 #include "ArgumentsParser.h"
 #include "System.h"
 
