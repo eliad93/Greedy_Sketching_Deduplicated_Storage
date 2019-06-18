@@ -107,6 +107,10 @@ inline bool System::canMigrate(double M, double epsilon, double originalSpace,
            <= ((M + epsilon) / 100);
 }
 
+inline bool System::isSolution(double M, double epsilon, double moved){
+    return moved >= (M - epsilon) && moved <= (M + epsilon);
+}
+
 void System::reclaimGreedy(System& target, double M, double epsilon){
     clock_t greedyBegin = clock();
     double reclaimed = 0, copiedSize = 0, copied = 0,
@@ -117,7 +121,7 @@ void System::reclaimGreedy(System& target, double M, double epsilon){
     if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
         return;
     }
-    while(bestReclaimId != -1){
+    while(bestReclaimId != -1 && !isSolution(M , epsilon, moved)){
         clock_t iterationBegin = clock();
         IterationStats iteration;
         iteration.iteration = iterationNum;
@@ -162,12 +166,9 @@ void System::reclaimGreedy(System& target, double M, double epsilon){
     clock_t greedyEnd = clock();
     double greedyTime = double(greedyEnd - greedyBegin) / CLOCKS_PER_SEC;
     // standard output
-    bool success = (moved >= ((M - epsilon) / 100) &&
-                    moved <= ((M+epsilon) / 100));
-    if(!success){
+    if(!isSolution(M, epsilon, moved)){
         cout << "Failed migration" << endl;
-    }
-    if(success){
+    } else{
         cout << "[";
         for(auto file: filesToMove) {
             cout << file << " ";

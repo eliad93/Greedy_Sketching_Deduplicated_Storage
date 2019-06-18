@@ -78,6 +78,7 @@ private:
     static string getFileName(const string& path);
     static inline bool canMigrate(double M, double epsilon,
             double originalSpace, double reclaimed, double reclaimAddition);
+    static inline bool isSolution(double M, double epsilon, double moved);
     /*
      * Private methods
      */
