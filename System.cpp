@@ -118,6 +118,8 @@ void System::reclaimGreedy(System& target, double M, double epsilon){
     int bestReclaimId = 0, iterationNum = 0;
     list<int> filesToMove;
     list<IterationStats> iterationsStats;
+    cout << "filesArraySize= " << filesArraySize << endl;
+    cout << "blocksArraySize= " << blocksArraySize << endl;
     if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
         return;
     }
