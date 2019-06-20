@@ -23,23 +23,33 @@ private:
     static const int argEpsilon = 2;
 
     vector<string> arguments;
-    string filePath;
+    vector<string> filesPaths;
     double M;
     double epsilon;
 
 public:
 
-    ArgumentsParser(int argc, char* argv[]){
+    ArgumentsParser(int argc, char* argv[]) :
+        arguments(),
+        filesPaths(){
         for(int i=1; i < argc; i++){
             arguments.emplace_back(string(argv[i]));
         }
-        filePath = arguments[argFile];
-        M = stod(arguments[argM]);
-        epsilon = stod(arguments[argEpsilon]);
+        int i=0;
+        while(i<arguments.size()-2){
+            filesPaths.emplace_back(arguments[i]);
+            i++;
+        }
+        M = stod(arguments[i++]);
+        epsilon = stod(arguments[i]);
     }
 
-    const string& getFilePath() const {
-        return filePath;
+    const string& getFilePath(int i) const {
+        return filesPaths[i];
+    }
+
+    const vector<string>& getFilesPaths() const {
+        return filesPaths;
     }
 
     const double getM() const {

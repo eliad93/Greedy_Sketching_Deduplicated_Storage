@@ -5,6 +5,7 @@
 
 #include "ArgumentsParser.h"
 #include "System.h"
+#include "Simulator.h"
 
 using std::vector;
 using std::string;
@@ -17,10 +18,7 @@ using std::getline;
 
 int main(int argc, char* argv[]) {
     ArgumentsParser argumentsParser(argc, argv);
-    System system1(argumentsParser.getFilePath());
-
-    System system2(system1.getFilesArraySize(), system1.getBlocksArraySize());
-    system1.reclaimGreedy(system2, argumentsParser.getM(),
-            argumentsParser.getEpsilon());
+    Simulator simulator(argumentsParser);
+    simulator.run();
     return 0;
 }

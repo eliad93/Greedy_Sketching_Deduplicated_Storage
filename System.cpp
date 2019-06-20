@@ -111,23 +111,22 @@ inline bool System::isSolution(double M, double epsilon, double moved){
     return moved >= (M - epsilon) && moved <= (M + epsilon);
 }
 
-void System::reclaimGreedy(System& target, double M, double epsilon){
+System::GreedyOutput System::greedy(System &target, double M, double epsilon){
     clock_t greedyBegin = clock();
     double reclaimed = 0, copiedSize = 0, copied = 0,
             originalSpace = blocksArraySize, moved = 0;
     int bestReclaimId = 0, iterationNum = 0;
-    list<int> filesToMove;
-    list<IterationStats> iterationsStats;
-    cout << "filesArraySize= " << filesArraySize << endl;
-    cout << "blocksArraySize= " << blocksArraySize << endl;
+    vector<int> filesToMove;
+    GreedyOutput output(getFileName(path), M, epsilon, filesArraySize,
+                        blocksArraySize);
     if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
-        return;
+        return output;
     }
     while(bestReclaimId != -1 && !isSolution(M , epsilon, moved)){
-        clock_t iterationBegin = clock();
-        IterationStats iteration;
-        iteration.iteration = iterationNum;
         iterationNum++;
+        clock_t iterationBegin = clock();
+        GreedyIterationStats iteration;
+        iteration.iteration = iterationNum;
         double bestSavingRatio = DBL_MAX, bestReclaim = 0,
                 bestCopiedSize = 0;
         bestReclaimId = -1;
@@ -163,42 +162,28 @@ void System::reclaimGreedy(System& target, double M, double epsilon){
         iteration.destinationSize = copied;
         iteration.iterationTime =
                 double(iterationEnd - iterationBegin) / CLOCKS_PER_SEC;
-        iterationsStats.emplace_back(iteration);
+        output.iterationsStats.emplace_back(iteration);
     }
     clock_t greedyEnd = clock();
-    double greedyTime = double(greedyEnd - greedyBegin) / CLOCKS_PER_SEC;
-    // standard output
+    output.summary.greedyTime = double(greedyEnd - greedyBegin) / CLOCKS_PER_SEC;
     if(!isSolution(M, epsilon, moved)){
         cout << "Failed migration" << endl;
     } else{
-        cout << "[";
-        for(auto file: filesToMove) {
-            cout << file << " ";
-        }
-        cout << "]" << endl;
-        cout << "moved = " << moved << endl;
-        cout << "copied = " << copied << endl;
+        output.filesToMove = filesToMove;
+        output.summary.MFractionActual = moved;
+        output.summary.MActual = reclaimed;
+        output.summary.replication = copiedSize;
+        output.summary.replicationFactor = copied;
     }
     // CSV output per run
-    cout << "inputFile = " << getFileName(path) << endl;
-    cout << "numFiles = " << filesArraySize << endl;
-    cout << "numBlocks = " << blocksArraySize << endl;
-    cout << "M = " << M << endl;
-    cout << "epsilon = " << epsilon << endl;
-    cout << "greedyTime = " << greedyTime << endl;
-    cout << "ingestTime = " << ingestTime << endl;
-    cout << "iterations = " << iterationNum << endl;
-
-    // per iteration output
-    for(auto& it: iterationsStats){
-        cout << "[iteration=" << it.iteration
-             << ", sourceSize=" << it.sourceSize
-             << ", destinationSize=" << it.destinationSize
-             << ", moved=" << it.moved
-             << ", copied=" << it.copied
-             << ", iterationTime=" << it.iterationTime
-             << "]" << endl;
-    }
+    output.summary.fileName = getFileName(path);
+    output.summary.numFiles = filesArraySize;
+    output.summary.numBlocks = blocksArraySize;
+    output.summary.M = M;
+    output.summary.ingestTime = ingestTime;
+    output.summary.totalTime = ingestTime + output.summary.greedyTime;
+    output.summary.numIterations = iterationNum;
+    return output;
 }
 
 string System::getFileName(const string& path) {
@@ -208,7 +193,10 @@ string System::getFileName(const string& path) {
 #endif
     size_t i = path.rfind(sep, path.length());
     if (i != string::npos) {
-        return(path.substr(i+1, path.length() - i));
+        string fullname = path.substr(i+1, path.length() - i);
+        size_t lastindex = fullname.find_last_of('.');
+        string rawname = fullname.substr(0, lastindex);
+        return rawname;
     }
     return("");
 }
