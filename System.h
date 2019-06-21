@@ -79,25 +79,6 @@ public:
      * information for a specific run
      */
     struct GreedySummary {
-        // Input file
-        // Deduplication Level first char of file name
-        // K (sketch factor) todo: ask Gala
-        // depth last char of second token
-        // system start/end 3/4 token
-        // container size ignore
-        // num containers ignore
-        // num files
-        // M fraction (%)
-        // M (num blocks to move)
-        // Epsilon fraction
-        // Epsilon (num blocks Epsilon represents)
-        // Replication (num blocks copied)
-        // Replication factor (% copied)
-        // Time limit ignore
-        // Total time
-        // Solver time ignore
-        // seed ignore
-        // Ingest time
         string fileName; // input file
         char dedupLevel{};
         unsigned int K{};

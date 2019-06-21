@@ -2,6 +2,8 @@
 // Created by eliad on 6/15/2019.
 //
 
+#include <experimental/filesystem>
+
 #include "System.h"
 
 ////////////////////////////////////////////////
@@ -117,8 +119,9 @@ System::GreedyOutput System::greedy(System &target, double M, double epsilon){
             originalSpace = blocksArraySize, moved = 0;
     int bestReclaimId = 0, iterationNum = 0;
     vector<int> filesToMove;
-    GreedyOutput output(getFileName(path), M, epsilon, filesArraySize,
-                        blocksArraySize);
+
+    GreedyOutput output(std::experimental::filesystem::path(path).filename(),
+            M, epsilon, filesArraySize, blocksArraySize);
     if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
         return output;
     }
@@ -136,8 +139,10 @@ System::GreedyOutput System::greedy(System &target, double M, double epsilon){
                 double currentReclaim = calculateReclaimable(file),
                         currentCopiedSize = target.calculateSpaceInTargetSystem(file),
                         savingRatio = currentCopiedSize / MAX(1.0, currentReclaim);
-                if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
-                        originalSpace, reclaimed, currentReclaim)){
+                // todo: Gala - which condition is correct?
+//                if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
+//                        originalSpace, reclaimed, currentReclaim)){
+                if(savingRatio < bestSavingRatio){
                     bestReclaimId = i;
                     bestSavingRatio = savingRatio;
                     bestReclaim = currentReclaim;
@@ -176,6 +181,7 @@ System::GreedyOutput System::greedy(System &target, double M, double epsilon){
         output.summary.replicationFactor = copied;
     }
     // CSV output per run
+//    output.summary.fileName = std::experimental::filesystem::path(path).
     output.summary.fileName = getFileName(path);
     output.summary.numFiles = filesArraySize;
     output.summary.numBlocks = blocksArraySize;
@@ -188,15 +194,23 @@ System::GreedyOutput System::greedy(System &target, double M, double epsilon){
 
 string System::getFileName(const string& path) {
     char sep = '/';
-#ifdef _WIN32
-    sep = '\\';
-#endif
+//#ifdef _WIN32
+//    sep = '\\';
+//#endif
     size_t i = path.rfind(sep, path.length());
     if (i != string::npos) {
         string fullname = path.substr(i+1, path.length() - i);
         size_t lastindex = fullname.find_last_of('.');
         string rawname = fullname.substr(0, lastindex);
         return rawname;
+    } else {
+        i = path.rfind('\\', path.length());
+        if (i != string::npos) {
+            string fullname = path.substr(i + 1, path.length() - i);
+            size_t lastindex = fullname.find_last_of('.');
+            string rawname = fullname.substr(0, lastindex);
+            return rawname;
+        }
     }
     return("");
 }
