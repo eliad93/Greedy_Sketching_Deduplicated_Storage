@@ -4,6 +4,12 @@
 
 #include "Simulator.h"
 
+constexpr char const *Simulator::resultsDirName;
+constexpr char const *Simulator::summaryFileName;
+constexpr char const *Simulator::summaryFileHeader;
+constexpr char const *Simulator::extendedOutputFileMiddle;
+constexpr char const *Simulator::extendedOutputHeader;
+
 void Simulator::createSummaryFile(){
     auto summaryFilePath = std::experimental::filesystem::path(summaryFileName);
     assert(!fileExists(summaryFilePath));

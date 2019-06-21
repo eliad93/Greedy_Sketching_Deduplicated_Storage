@@ -5,8 +5,6 @@
 #ifndef GREEDY_SKETCHING_DEDUPLICATED_STORAGE_SIMULATOR_H
 #define GREEDY_SKETCHING_DEDUPLICATED_STORAGE_SIMULATOR_H
 
-//#include <direct.h>
-#include <windows.h>
 #include <experimental/filesystem>
 #include "System.h"
 #include "ArgumentsParser.h"
