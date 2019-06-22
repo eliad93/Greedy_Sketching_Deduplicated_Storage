@@ -24,7 +24,7 @@ private:
     static constexpr char const
     *extendedOutputFileMiddle = "_optimization_solution_";
     static constexpr char const
-            *extendedOutputHeader = "Iteration,Soutrce size,Destination size,"
+            *extendedOutputHeader = "Iteration,Source size,Destination size,"
                                   "M factor,Replication "
                                   "factor,Iteration time\n";
     vector<string> filesPaths;
