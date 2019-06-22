@@ -11,7 +11,9 @@ constexpr char const *Simulator::extendedOutputFileMiddle;
 constexpr char const *Simulator::extendedOutputHeader;
 
 void Simulator::createSummaryFile(){
-    auto summaryFilePath = std::experimental::filesystem::path(summaryFileName);
+    auto summaryFilePath = std::experimental::filesystem::path(resultsDirName);
+    summaryFilePath.concat("/");
+    summaryFilePath.concat(summaryFileName);
     assert(!fileExists(summaryFilePath));
     std::ofstream summaryFile(summaryFilePath,
                               std::ofstream::out | std::ofstream::app);
@@ -25,7 +27,9 @@ void Simulator::exportSummary(System::GreedySummary& s){
             cout << "Error creating results directory" << endl;
         }
     }
-    auto summaryFilePath = std::experimental::filesystem::path(summaryFileName);
+    auto summaryFilePath = std::experimental::filesystem::path(resultsDirName);
+    summaryFilePath.concat("/");
+    summaryFilePath.concat(summaryFileName);
     if(!fileExists(summaryFilePath)){
         createSummaryFile();
     }
