@@ -139,10 +139,8 @@ System::GreedyOutput System::greedy(System &target, double M, double epsilon){
                 double currentReclaim = calculateReclaimable(file),
                         currentCopiedSize = target.calculateSpaceInTargetSystem(file),
                         savingRatio = currentCopiedSize / MAX(1.0, currentReclaim);
-                // todo: Gala - which condition is correct?
-//                if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
-//                        originalSpace, reclaimed, currentReclaim)){
-                if(savingRatio < bestSavingRatio){
+                if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
+                        originalSpace, reclaimed, currentReclaim)){
                     bestReclaimId = i;
                     bestSavingRatio = savingRatio;
                     bestReclaim = currentReclaim;
