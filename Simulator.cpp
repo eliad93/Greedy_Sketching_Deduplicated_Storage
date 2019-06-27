@@ -21,7 +21,7 @@ void Simulator::createSummaryFile(){
     summaryFile.close();
 }
 
-void Simulator::exportSummary(System::GreedySummary& s){
+void Simulator::exportSummary(System::GreedyOutput& o){
     if(!std::experimental::filesystem::is_directory(resultsDirName)){
         if(!std::experimental::filesystem::create_directory(resultsDirName)){
             cout << "Error creating results directory" << endl;
@@ -39,35 +39,32 @@ void Simulator::exportSummary(System::GreedySummary& s){
         cout << "Error opening " << summaryFileName << endl;
         return;
     }
-    summaryFile << s.fileName << "," << s.dedupLevel << "," << s.K
-                << "," << s.depth  << "," << s.systemStart << ","
-                << s.systemEnd << "," << s.numFiles << "," << s.numBlocks
-                << "," << s.MFraction << "," << s.M << ","
-                << s.MFractionActual << "," << s.MActual << "," <<
-                s.epsilonFraction << "," << s.epsilon << ","
-                << s.replicationFactor << "," << s.replication << ","
-                << s.totalTime << "," << s.greedyTime << ","
-                << s.ingestTime << "," << s.numIterations << "\n";
+    for(auto& iter: o.summariesMap){
+        System::GreedySummaryUnique su = iter.second;
+        summaryFile << o.greedySummaryCommon.fileName << ","
+        << o.greedySummaryCommon.dedupLevel << "," << o.greedySummaryCommon.K
+        << "," << o.greedySummaryCommon.depth  << ","
+        << o.greedySummaryCommon.systemStart << ","
+        << o.greedySummaryCommon.systemEnd << ","
+        << o.greedySummaryCommon.numFiles << ","
+        << o.greedySummaryCommon.numBlocks << "," << su.MFraction << ","
+        << su.M << "," << su.MFractionActual << "," << su.MActual << "," <<
+        su.epsilonFraction << "," << su.epsilon << "," << su.replicationFraction
+        << "," << su.replication << "," << su.totalTime << "," << su.greedyTime
+        << "," << o.greedySummaryCommon.ingestTime << "," << su.numIterations
+        << "\n";
+    }
     summaryFile.close();
 }
 
 void Simulator::exportOutput(System::GreedyOutput& output){
-    System::GreedySummary& s = output.summary;
-    exportSummary(s);
+    exportSummary(output);
     exportExtendedOutput(output);
 }
 
 string Simulator::extendedOutputName(System::GreedyOutput& output){
-    std::ostringstream MStrs;
-    MStrs << output.summary.MFraction;
-    string MStr = MStrs.str();
-    std::ostringstream EStrs;
-    EStrs << output.summary.epsilonFraction;
-    string epsilonStr = EStrs.str();
-
-    string fileName = output.summary.fileName +
-                      string(extendedOutputFileMiddle)
-                      + MStr + "_" + epsilonStr + ".csv";
+    string fileName = output.greedySummaryCommon.fileName +
+                      string(extendedOutputFileMiddle) + ".csv";
     return fileName;
 }
 
@@ -85,7 +82,7 @@ Simulator::extendedOutputPath(System::GreedyOutput& output){
 void Simulator::exportExtendedOutput(System::GreedyOutput& output){
     auto dirPath = std::experimental::filesystem::path(resultsDirName);
     dirPath.concat("/");
-    dirPath.concat(output.summary.fileName);
+    dirPath.concat(output.greedySummaryCommon.fileName);
     if(!std::experimental::filesystem::is_directory(dirPath)){
         if(!std::experimental::filesystem::create_directory(dirPath)){
             cout << "Error creating " << dirPath.string() << endl;
@@ -99,15 +96,11 @@ void Simulator::exportExtendedOutput(System::GreedyOutput& output){
         cout << "Error opening " << extendedOutputName(output) << endl;
         return;
     }
-    for(auto fileId: output.filesToMove) {
-        file << fileId << " ";
-    }
-    file << "\n";
     file << extendedOutputHeader;
     for(auto& it: output.iterationsStats){
         file << it.iteration << "," << it.sourceSize << "," <<
              it.destinationSize << "," << it.moved << "," <<
-             it.copied << "," << it.iterationTime << "\n";
+             it.copied << "," << it.iterationTime << "," << it.fileId << "\n";
     }
     file.close();
 }
@@ -117,17 +110,19 @@ bool Simulator::fileExists(std::experimental::filesystem::path& path) {
     return (bool)file;
 }
 
-Simulator::Simulator(ArgumentsParser& argumentsParser):
-filesPaths(argumentsParser.getFilesPaths()),
-M(argumentsParser.getM()),
-epsilon(argumentsParser.getEpsilon()){}
+Simulator::Simulator(ArgumentsParser& argumentsParser) :
+        filePath(argumentsParser.getFilePath()),
+        dedupLevel(argumentsParser.getDedupLevel()),
+        depth(argumentsParser.getDepth()),
+        systemStart(argumentsParser.getSystemStart()),
+        systemEnd(argumentsParser.getSystemEnd()),
+        containerSize(argumentsParser.getContainerSize()),
+        K(argumentsParser.getK()){}
 
 void Simulator::run(){
-    for(auto& path: filesPaths){
-        System source(path);
-        System target(source.getFilesArraySize(),
-                      source.getBlocksArraySize());
-        System::GreedyOutput output = source.greedy(target, M, epsilon);
-        exportOutput(output);
-    }
+    System source(filePath, depth, systemStart, systemEnd, containerSize, K);
+    System target(source.getFilesArraySize(),
+                  source.getBlocksArraySize());
+    System::GreedyOutput output = source.greedy(target);
+    exportOutput(output);
 }

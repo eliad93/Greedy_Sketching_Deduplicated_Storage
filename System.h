@@ -1,3 +1,15 @@
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
 //
 // Created by eliad on 6/15/2019.
 //
@@ -16,6 +28,9 @@
 #include <cfloat>
 #include <ctime>
 #include <chrono>
+#include <set>
+#include <algorithm>
+#include <map>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -27,6 +42,9 @@ using std::vector;
 using std::unordered_map;
 using std::list;
 using std::array;
+using std::pair;
+using std::set;
+using std::map;
 
 using std::string;
 using std::ifstream;
@@ -71,6 +89,7 @@ public:
         double moved{};
         double copied{};
         double iterationTime{};
+        unsigned int fileId = -1;
 
         GreedyIterationStats() = default;
     };
@@ -78,58 +97,70 @@ public:
      * Used for organizing summarized greedy
      * information for a specific run
      */
-    struct GreedySummary {
+    struct GreedySummaryCommon {
         string fileName; // input file
         char dedupLevel{};
-        unsigned int K{};
-        string depth{};// last char of second token
-        string systemStart{}; // system start - 3'rd token
-        string systemEnd{}; // system end - 4'th token
+        string K{};
+        string depth{};
+        string systemStart{};
+        string systemEnd{};
         unsigned int numFiles{}; // num files in source
         unsigned int numBlocks{};
+        double ingestTime{};
+        GreedySummaryCommon(string& fileName, string K, string depth,
+                string systemStart, string systemEnd, unsigned int numFiles,
+                unsigned int numBlocks, double ingestTime):
+        fileName(fileName),
+        dedupLevel('B'),
+        depth(std::move(depth)),
+        systemStart(std::move(systemStart)),
+        systemEnd(std::move(systemEnd)),
+        numFiles(numFiles),
+        numBlocks(numBlocks),
+        K(std::move(K)),
+        ingestTime(ingestTime){}
+    };
+
+    struct GreedySummaryUnique{
         double MFraction{}; // % blocks to move from source to target
         double M{}; // num blocks to move from source to target
-        double MFractionActual{};
-        double MActual{};
         double epsilonFraction{}; // the input epsilon
         double epsilon{}; // num blocks Epsilon represents
-        double replicationFactor{}; // num blocks copied
+        double MFractionActual{};
+        double MActual{};
+        double replicationFraction{}; // num blocks copied
         double replication{}; // % blocks copied
         double totalTime{};
         double greedyTime{};
-        double ingestTime{};
         unsigned int numIterations{};
-        explicit GreedySummary(string& fileName, double M, double _epsilon,
-                unsigned int numFiles, unsigned int numBlocks):
-        fileName(fileName),
-        M(M/100.0*(double)numBlocks), MFraction(M),
-        epsilon(_epsilon/100.0*(double)numBlocks), epsilonFraction(_epsilon){
-            vector<string> tokens = splitFileName();
-            dedupLevel = tokens[0][0];
-            K = 1;
-            depth = *(tokens[2].begin()+5);
-            systemStart = tokens[3];
-            systemEnd = tokens[4];
-        }
-
-        vector<string> splitFileName(){
-            vector<string> tokens;
-            stringstream ss(fileName);
-            string token;
-            while(std::getline(ss, token, '_')){
-                tokens.emplace_back(token);
-            }
-            return tokens;
-        }
+        GreedySummaryUnique(double MFraction, double M, double epsilonFraction,
+                double epsilon, double MFractionActual, double MActual,
+                double replicationFraction, double replication, double totalTime,
+                double greedyTime, unsigned int numIterations) :
+                MFraction(MFraction),
+                M(M),
+                epsilonFraction(epsilonFraction),
+                epsilon(epsilon),
+                MFractionActual(MFractionActual),
+                MActual(MActual),
+                replicationFraction(replicationFraction),
+                replication(replication),
+                totalTime(totalTime),
+                greedyTime(greedyTime),
+                numIterations(numIterations) {}
     };
 
     struct GreedyOutput {
-        GreedySummary summary;
+        GreedySummaryCommon greedySummaryCommon;
+        map<pair<double, double>, GreedySummaryUnique> summariesMap;
         list<GreedyIterationStats> iterationsStats;
-        vector<int> filesToMove;
-        explicit GreedyOutput(string fileName, double M, double epsilon,
-                unsigned int numFiles, unsigned int numBlocks) :
-        summary(fileName, M, epsilon, numFiles, numBlocks){}
+
+        GreedyOutput(string fileName, string K, string depth,
+        string systemStart, string systemEnd, unsigned int numFiles,
+        unsigned int numBlocks, double ingestTime) :
+                greedySummaryCommon(fileName, std::move(K), std::move(depth),
+                        std::move(systemStart), std::move(systemEnd), numFiles,
+                        numBlocks, ingestTime){}
     };
 
 private:
@@ -140,16 +171,22 @@ private:
     static inline bool canMigrate(double M, double epsilon,
             double originalSpace, double reclaimed, double reclaimAddition);
     static inline bool isSolution(double M, double epsilon, double moved);
+    static bool isFailed(double m, double e, double moved);
     /*
      * Private methods
      */
     void initObjects(ifstream& input_csv);
+    void initAllPairs();
+    bool isFinalState(double moved, GreedyOutput& greedyOutput,
+                      GreedySummaryUnique& greedySummaryUnique);
 public:
     /*
      * Constructors
      */
     System(unsigned int filesArraySize, unsigned int blocksArraySize);
-    explicit System(const string& path);
+    System(string filePath, string depth,
+                    string systemStart, string systemEnd,
+                    string containerSize, string K);
     /*
      * Destructor
      */
@@ -161,8 +198,9 @@ public:
     double calculateReclaimable(File& file);
     double calculateSpaceInTargetSystem(System& target);
     double calculateSpaceInTargetSystem(File& file);
-    GreedyOutput greedy(System &target, double M, double epsilon);
-    void migrateVolume(System& target, int fileId);
+    GreedyOutput greedy(System &target);
+    void migrateVolume(System& target, int fileId, double& numMoved,
+            double& numReplicated);
     void addVolume(int fileId, File* file);
     /*
      * Simple getters
@@ -184,6 +222,11 @@ private:
     string path;
     unsigned int blocksArraySize = 0;
     unsigned int filesArraySize = 0;
+    string K;
+    string depth;
+    string systemStart;
+    string systemEnd;
+    string containerSize;
     /*
      * A File is a set of blocks from 0 to blocksArraySize
      * where file[i]==true indicates that file contains block i
@@ -193,6 +236,11 @@ private:
     // blocks[i] is the reference count of block i
     int* blocks = nullptr;
     double ingestTime = 0;
+    vector<double> mVector = {10, 20, 25, 30, 33, 40, 50, 60};
+    vector<double> epsilonVector = {1, 2, 5, 10, 15};
+    set<pair<double, double>> unsolvedPairs;
+    set<pair<double, double>> solvedPairs;
+    set<pair<double, double>> failedPairs;
 };
 
 

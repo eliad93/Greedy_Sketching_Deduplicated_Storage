@@ -7,59 +7,73 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 using std::vector;
 using std::string;
 
 using std::stoi;
 using std::stod;
+using std::cout;
+using std::endl;
 
 class ArgumentsParser {
 
 private:
 
-    static const int argFile = 0;
-    static const int argM = 1;
-    static const int argEpsilon = 2;
+    static const unsigned int numArgs = 8;
+
+    static const int argFile = 1;
+    static const int argDedupLevel = 2;
+    static const int argDepth = 3;
+    static const int argSystemStart = 4;
+    static const int argSystemEnd = 5;
+    static const int argContainerSize = 6;
+    static const int argK = 7;
 
     vector<string> arguments;
-    vector<string> filesPaths;
-    double M;
-    double epsilon;
 
 public:
 
-    ArgumentsParser(int argc, char* argv[]) :
-        arguments(),
-        filesPaths(){
-        for(int i=1; i < argc; i++){
+    ArgumentsParser(int argc, char *argv[]) :
+            arguments() {
+        if (argc != numArgs) {
+            cout << "Usage:\n   ./prog file dedup depth sys_start sys_end "
+                    "container_size k" << endl;
+            exit(0);
+        }
+        for (int i = 0; i < argc; i++) {
             arguments.emplace_back(string(argv[i]));
         }
-        int i=0;
-        while(i<arguments.size()-2){
-            filesPaths.emplace_back(arguments[i]);
-            i++;
-        }
-        M = stod(arguments[i++]);
-        epsilon = stod(arguments[i]);
     }
 
-    const string& getFilePath(int i) const {
-        return filesPaths[i];
+    const string &getFilePath() const {
+        return arguments[argFile];
     }
 
-    const vector<string>& getFilesPaths() const {
-        return filesPaths;
+    const string &getDedupLevel() const {
+        return arguments[argDedupLevel];
     }
 
-    const double getM() const {
-        return M;
+    const string &getDepth() const {
+        return arguments[argDepth];
     }
 
-    const double getEpsilon() const {
-        return epsilon;
+    const string &getSystemStart() const {
+        return arguments[argSystemStart];
+    }
+
+    const string &getSystemEnd() const {
+        return arguments[argSystemEnd];
+    }
+
+    const string &getContainerSize() const {
+        return arguments[argContainerSize];
+    }
+
+    const string &getK() const {
+        return arguments[argK];
     }
 };
-
 
 #endif //GREEDY_SKETCHING_DEDUPLICATED_STORAGE_ARGUMENTSPARSER_H

@@ -1,3 +1,11 @@
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
+#include <utility>
+
 //
 // Created by eliad on 6/15/2019.
 //
@@ -18,10 +26,19 @@ System::System(unsigned int filesArraySize,
     blocks = new int[blocksArraySize]();
 }
 
-System::System(const string& path) :
-        path(path),
+System::System(string filePath, string depth,
+        string systemStart, string systemEnd, string containerSize, string K) :
+        path(std::move(filePath)),
         filesArraySize(0),
-        blocksArraySize(0){
+        blocksArraySize(0),
+        K(std::move(K)),
+        depth(std::move(depth)),
+        systemStart(std::move(systemStart)),
+        systemEnd(std::move(systemEnd)),
+        containerSize(std::move(containerSize)),
+        unsolvedPairs(),
+        solvedPairs(),
+        failedPairs(){
     clock_t ingestBegin = clock();
     ifstream input_csv(path);
     if(!input_csv.is_open()){
@@ -32,6 +49,20 @@ System::System(const string& path) :
     initObjects(input_csv);
     clock_t ingestEnd = clock();
     ingestTime = double(ingestEnd - ingestBegin) / CLOCKS_PER_SEC;
+    initAllPairs();
+}
+
+void System::initAllPairs(){
+    if(mVector.empty() || epsilonVector.empty()){
+        return;
+    }
+    for(double m: mVector){
+        for(double e: epsilonVector){
+            if(m > e) {
+                unsolvedPairs.insert(pair(m, e));
+            }
+        }
+    }
 }
 
 System::~System(){
@@ -113,80 +144,98 @@ inline bool System::isSolution(double M, double epsilon, double moved){
     return moved >= (M - epsilon) && moved <= (M + epsilon);
 }
 
-System::GreedyOutput System::greedy(System &target, double M, double epsilon){
+bool System::isFailed(double m, double e, double moved){
+    return moved > (m + e);
+}
+
+bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
+                          GreedySummaryUnique& greedySummaryUnique){
+    if(unsolvedPairs.empty()){
+        return true;
+    }
+    for(auto& p: unsolvedPairs){
+        double m = p.first;
+        double e = p.second;
+        if(isSolution(m, e, moved)){
+            greedySummaryUnique.MFraction = m;
+            greedySummaryUnique.M = m / 100.0 * filesArraySize;
+            greedySummaryUnique.epsilonFraction = e;
+            greedySummaryUnique.epsilon = e / 100.0 * filesArraySize;
+            greedyOutput.summariesMap.insert(pair<pair<double, double>,
+                    GreedySummaryUnique>(pair<double, double>(m, e),
+                    greedySummaryUnique));
+            solvedPairs.insert(pair(m, e));
+        } else if(isFailed(m, e, moved)){
+            failedPairs.insert(p);
+        }
+    }
+    for(auto& p: solvedPairs){
+        unsolvedPairs.erase(p);
+    }
+    for(auto& p: failedPairs){
+        unsolvedPairs.erase(p);
+    }
+    return unsolvedPairs.empty();
+}
+
+System::GreedyOutput System::greedy(System &target){
     clock_t greedyBegin = clock();
-    double reclaimed = 0, copiedSize = 0, copied = 0,
+    double reclaimed = 0, replicatedSize = 0, replicated = 0,
             originalSpace = blocksArraySize, moved = 0;
     int bestReclaimId = 0, iterationNum = 0;
-    vector<int> filesToMove;
-
-    GreedyOutput output(std::experimental::filesystem::path(path).filename(),
-            M, epsilon, filesArraySize, blocksArraySize);
-    if(!canMigrate(M, epsilon, originalSpace, reclaimed, 0)){
-        return output;
-    }
-    while(bestReclaimId != -1 && !isSolution(M , epsilon, moved)){
+    string fileName = getFileName(path);
+    GreedyOutput output(fileName,
+            K, depth, systemStart, systemEnd, filesArraySize, blocksArraySize,
+            ingestTime);
+    GreedySummaryUnique greedySummaryUnique(-1, -1, -1, -1, 0, 0, 0, 0,
+            ingestTime, 0, 0);
+    while(bestReclaimId != -1 && !isFinalState(moved, output,
+            greedySummaryUnique)){
         iterationNum++;
         clock_t iterationBegin = clock();
         GreedyIterationStats iteration;
         iteration.iteration = iterationNum;
-        double bestSavingRatio = DBL_MAX, bestReclaim = 0,
-                bestCopiedSize = 0;
+        double bestSavingRatio = DBL_MAX, bestReclaim = 0;
         bestReclaimId = -1;
         for(int i=0; i<filesArraySize; i++){
             if(files[i]){
                 File file = *files[i];
                 double currentReclaim = calculateReclaimable(file),
-                        currentCopiedSize = target.calculateSpaceInTargetSystem(file),
-                        savingRatio = currentCopiedSize / MAX(1.0, currentReclaim);
-                if(savingRatio < bestSavingRatio && canMigrate(M, epsilon,
-                        originalSpace, reclaimed, currentReclaim)){
+                        currentReplicatedEstimationSize = target.calculateSpaceInTargetSystem(file),
+                        savingRatio = currentReplicatedEstimationSize / MAX(1.0, currentReclaim);
+                if(savingRatio < bestSavingRatio){
                     bestReclaimId = i;
                     bestSavingRatio = savingRatio;
                     bestReclaim = currentReclaim;
-                    bestCopiedSize = currentCopiedSize;
                 }
             }
         }
         if(bestReclaimId != -1){
-            filesToMove.emplace_back(bestReclaimId);
-            migrateVolume(target, bestReclaimId);
-            reclaimed += bestReclaim;
-            copiedSize += bestCopiedSize;
+            migrateVolume(target, bestReclaimId,
+                    reclaimed, replicatedSize);
             double prevMoved = moved;
-            double prevCopied = copied;
+            double prevCopied = replicated;
             moved = 100 * reclaimed / originalSpace;
-            copied = 100 * copiedSize / originalSpace;
+            replicated = 100 * replicatedSize / originalSpace;
             iteration.moved = moved - prevMoved;
-            iteration.copied = copied - prevCopied;
+            iteration.copied = replicated - prevCopied;
+            iteration.fileId = bestReclaimId;
+            greedySummaryUnique.replicationFraction = replicatedSize;
+            greedySummaryUnique.replication = replicated;
+            greedySummaryUnique.MFractionActual = moved;
+            greedySummaryUnique.MActual = reclaimed;
         }
         clock_t iterationEnd = clock();
         iteration.sourceSize = 100 * (originalSpace - reclaimed) / originalSpace;
-        iteration.destinationSize = copied;
+        iteration.destinationSize = replicated;
         iteration.iterationTime =
                 double(iterationEnd - iterationBegin) / CLOCKS_PER_SEC;
         output.iterationsStats.emplace_back(iteration);
+        greedySummaryUnique.greedyTime = double(iterationEnd - greedyBegin) / CLOCKS_PER_SEC;
+        greedySummaryUnique.totalTime = greedySummaryUnique.greedyTime +
+                ingestTime;
+        greedySummaryUnique.numIterations = iterationNum;
     }
-    clock_t greedyEnd = clock();
-    output.summary.greedyTime = double(greedyEnd - greedyBegin) / CLOCKS_PER_SEC;
-    if(!isSolution(M, epsilon, moved)){
-        cout << "Failed migration" << endl;
-    } else{
-        output.filesToMove = filesToMove;
-        output.summary.MFractionActual = moved;
-        output.summary.MActual = reclaimed;
-        output.summary.replication = copiedSize;
-        output.summary.replicationFactor = copied;
-    }
-    // CSV output per run
-//    output.summary.fileName = std::experimental::filesystem::path(path).
-    output.summary.fileName = getFileName(path);
-    output.summary.numFiles = filesArraySize;
-    output.summary.numBlocks = blocksArraySize;
-    output.summary.M = M;
-    output.summary.ingestTime = ingestTime;
-    output.summary.totalTime = ingestTime + output.summary.greedyTime;
-    output.summary.numIterations = iterationNum;
     return output;
 }
 
@@ -213,7 +262,8 @@ string System::getFileName(const string& path) {
     return("");
 }
 
-void System::migrateVolume(System& target, int fileId){
+void System::migrateVolume(System& target, int fileId,
+        double& numMoved, double& numReplicated){
     assert(fileId >= 0);
     if(fileId + 1 > filesArraySize){
         return;
@@ -229,6 +279,11 @@ void System::migrateVolume(System& target, int fileId){
             assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
                    blocks[blockId]>0);
             blocks[blockId]--;
+            if(blocks[blockId] == 0){
+                numMoved++;
+            } else {
+                numReplicated++;
+            }
         }
     }
     target.addVolume(fileId, file);

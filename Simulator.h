@@ -26,19 +26,23 @@ private:
     static constexpr char const
             *extendedOutputHeader = "Iteration,Source size,Destination size,"
                                   "M factor,Replication "
-                                  "factor,Iteration time\n";
-    vector<string> filesPaths;
-    double M;
-    double epsilon;
+                                  "factor,Iteration time,File\n";
+    string filePath;
+    string dedupLevel;
+    string depth;
+    string systemStart;
+    string systemEnd;
+    string containerSize;
+    string K;
     /*
      * static private functions
      */
     static void createSummaryFile();
-    static void exportSummary(System::GreedySummary& s);
-    static void exportOutput(System::GreedyOutput& output);
-    static string extendedOutputName(System::GreedyOutput& output);
-    static std::experimental::filesystem::path extendedOutputPath(System::GreedyOutput& output);
-    static void exportExtendedOutput(System::GreedyOutput& output);
+    static void exportSummary(System::GreedyOutput& o);
+    static void exportOutput(System::GreedyOutput& o);
+    static string extendedOutputName(System::GreedyOutput& o);
+    static std::experimental::filesystem::path extendedOutputPath(System::GreedyOutput& o);
+    static void exportExtendedOutput(System::GreedyOutput& o);
     static bool fileExists(std::experimental::filesystem::path& path);
 
 public:
