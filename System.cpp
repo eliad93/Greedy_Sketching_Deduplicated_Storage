@@ -158,9 +158,9 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
         double e = p.second;
         if(isSolution(m, e, moved)){
             greedySummaryUnique.MFraction = m;
-            greedySummaryUnique.M = m / 100.0 * filesArraySize;
+            greedySummaryUnique.M = m / 100.0 * blocksArraySize;
             greedySummaryUnique.epsilonFraction = e;
-            greedySummaryUnique.epsilon = e / 100.0 * filesArraySize;
+            greedySummaryUnique.epsilon = e / 100.0 * blocksArraySize;
             greedyOutput.summariesMap.insert(pair<pair<double, double>,
                     GreedySummaryUnique>(pair<double, double>(m, e),
                     greedySummaryUnique));
