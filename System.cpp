@@ -59,7 +59,7 @@ void System::initAllPairs(){
     for(double m: mVector){
         for(double e: epsilonVector){
             if(m > e) {
-                unsolvedPairs.insert(pair(m, e));
+                unsolvedPairs.insert(pair<double, double>(m, e));
             }
         }
     }
@@ -164,7 +164,7 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
             greedyOutput.summariesMap.insert(pair<pair<double, double>,
                     GreedySummaryUnique>(pair<double, double>(m, e),
                     greedySummaryUnique));
-            solvedPairs.insert(pair(m, e));
+            solvedPairs.insert(pair<double, double>(m, e));
         } else if(isFailed(m, e, moved)){
             failedPairs.insert(p);
         }
