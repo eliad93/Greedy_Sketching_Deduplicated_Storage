@@ -161,13 +161,16 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
             greedySummaryUnique.M = m / 100.0 * blocksArraySize;
             greedySummaryUnique.epsilonFraction = e;
             greedySummaryUnique.epsilon = e / 100.0 * blocksArraySize;
+            greedySummaryUnique.solved = "yes";
             greedyOutput.summariesMap.insert(pair<pair<double, double>,
                     GreedySummaryUnique>(pair<double, double>(m, e),
                     greedySummaryUnique));
-            greedySummaryUnique.solved = "yes";
             solvedPairs.insert(pair<double, double>(m, e));
         } else if(isFailed(m, e, moved)){
             greedySummaryUnique.solved = "no";
+            greedyOutput.summariesMap.insert(pair<pair<double, double>,
+                    GreedySummaryUnique>(pair<double, double>(m, e),
+                                         greedySummaryUnique));
             failedPairs.insert(p);
         }
     }
