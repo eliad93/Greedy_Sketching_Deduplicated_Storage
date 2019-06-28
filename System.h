@@ -133,6 +133,7 @@ public:
         double totalTime{};
         double greedyTime{};
         unsigned int numIterations{};
+        string solved = "no";
         GreedySummaryUnique(double MFraction, double M, double epsilonFraction,
                 double epsilon, double MFractionActual, double MActual,
                 double replicationFraction, double replication, double totalTime,

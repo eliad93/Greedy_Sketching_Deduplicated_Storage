@@ -52,7 +52,7 @@ void Simulator::exportSummary(System::GreedyOutput& o){
         su.epsilonFraction << "," << su.epsilon << "," << su.replicationFraction
         << "," << su.replication << "," << su.totalTime << "," << su.greedyTime
         << "," << o.greedySummaryCommon.ingestTime << "," << su.numIterations
-        << "\n";
+        << "," << su.solved << "\n";
     }
     summaryFile.close();
 }

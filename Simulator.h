@@ -20,7 +20,7 @@ private:
                          "M fraction,M,M fraction actual,M actual,"
                          "Epsilon fraction,Epsilon,Replication fraction,"
                          "Replication,Total time,Solver time,Ingest time,"
-                         "Iterations\n";
+                         "Iterations,Solved\n";
     static constexpr char const
     *extendedOutputFileMiddle = "_optimization_solution_";
     static constexpr char const
