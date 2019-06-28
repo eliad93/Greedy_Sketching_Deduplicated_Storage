@@ -156,11 +156,11 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
     for(auto& p: unsolvedPairs){
         double m = p.first;
         double e = p.second;
+        greedySummaryUnique.MFraction = m;
+        greedySummaryUnique.M = m / 100.0 * blocksArraySize;
+        greedySummaryUnique.epsilonFraction = e;
+        greedySummaryUnique.epsilon = e / 100.0 * blocksArraySize;
         if(isSolution(m, e, moved)){
-            greedySummaryUnique.MFraction = m;
-            greedySummaryUnique.M = m / 100.0 * blocksArraySize;
-            greedySummaryUnique.epsilonFraction = e;
-            greedySummaryUnique.epsilon = e / 100.0 * blocksArraySize;
             greedySummaryUnique.solved = "yes";
             greedyOutput.summariesMap.insert(pair<pair<double, double>,
                     GreedySummaryUnique>(pair<double, double>(m, e),
