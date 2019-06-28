@@ -180,8 +180,7 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
 
 System::GreedyOutput System::greedy(System &target){
     clock_t greedyBegin = clock();
-    double reclaimed = 0, replicatedSize = 0, replicated = 0,
-            originalSpace = blocksArraySize, moved = 0;
+    double reclaimed = 0, replicatedSize = 0, replicated = 0, moved = 0;
     int bestReclaimId = 0, iterationNum = 0;
     string fileName = getFileName(path);
     GreedyOutput output(fileName,
@@ -215,8 +214,8 @@ System::GreedyOutput System::greedy(System &target){
                     reclaimed, replicatedSize);
             double prevMoved = moved;
             double prevCopied = replicated;
-            moved = 100 * reclaimed / originalSpace;
-            replicated = 100 * replicatedSize / originalSpace;
+            moved = 100 * reclaimed / blocksArraySize;
+            replicated = 100 * replicatedSize / blocksArraySize;
             iteration.moved = moved - prevMoved;
             iteration.copied = replicated - prevCopied;
             iteration.fileId = bestReclaimId;
@@ -226,8 +225,8 @@ System::GreedyOutput System::greedy(System &target){
             greedySummaryUnique.MActual = reclaimed;
         }
         clock_t iterationEnd = clock();
-        iteration.sourceSize = 100 * (originalSpace - reclaimed) / originalSpace;
-        iteration.destinationSize = replicated;
+        iteration.sourceSize = 100 * (blocksArraySize - reclaimed) / blocksArraySize;
+        iteration.destinationSize = moved;
         iteration.iterationTime =
                 double(iterationEnd - iterationBegin) / CLOCKS_PER_SEC;
         output.iterationsStats.emplace_back(iteration);

@@ -25,8 +25,8 @@ private:
     *extendedOutputFileMiddle = "_optimization_solution_";
     static constexpr char const
             *extendedOutputHeader = "Iteration,Source size,Destination size,"
-                                  "M factor,Replication "
-                                  "factor,Iteration time,File\n";
+                                  "M fraction,Replication "
+                                  "fraction,Iteration time,File\n";
     string filePath;
     string dedupLevel;
     string depth;
