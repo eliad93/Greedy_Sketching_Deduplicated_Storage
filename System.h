@@ -99,7 +99,7 @@ public:
      */
     struct GreedySummaryCommon {
         string fileName; // input file
-        char dedupLevel{};
+        char deduplicationLevel{};
         string K{};
         string depth{};
         string systemStart{};
@@ -111,7 +111,7 @@ public:
                 string systemStart, string systemEnd, unsigned int numFiles,
                 unsigned int numBlocks, double ingestTime):
         fileName(fileName),
-        dedupLevel('B'),
+        deduplicationLevel('B'),
         depth(std::move(depth)),
         systemStart(std::move(systemStart)),
         systemEnd(std::move(systemEnd)),

@@ -42,7 +42,7 @@ void Simulator::exportSummary(System::GreedyOutput& o){
     for(auto& iter: o.summariesMap){
         System::GreedySummaryUnique su = iter.second;
         summaryFile << o.greedySummaryCommon.fileName << ","
-        << o.greedySummaryCommon.dedupLevel << "," << o.greedySummaryCommon.K
+        << o.greedySummaryCommon.deduplicationLevel << "," << o.greedySummaryCommon.K
         << "," << o.greedySummaryCommon.depth  << ","
         << o.greedySummaryCommon.systemStart << ","
         << o.greedySummaryCommon.systemEnd << ","
@@ -66,17 +66,6 @@ string Simulator::extendedOutputName(System::GreedyOutput& output){
     string fileName = output.greedySummaryCommon.fileName +
                       string(extendedOutputFileMiddle) + ".csv";
     return fileName;
-}
-
-std::experimental::filesystem::path
-Simulator::extendedOutputPath(System::GreedyOutput& output){
-    std::experimental::filesystem::path path =
-            std::experimental::filesystem::current_path();
-    path.concat("/");
-    path.concat(resultsDirName);
-    path.concat("/");
-    path.concat(extendedOutputName(output));
-    return path;
 }
 
 void Simulator::exportExtendedOutput(System::GreedyOutput& output){
@@ -112,7 +101,7 @@ bool Simulator::fileExists(std::experimental::filesystem::path& path) {
 
 Simulator::Simulator(ArgumentsParser& argumentsParser) :
         filePath(argumentsParser.getFilePath()),
-        dedupLevel(argumentsParser.getDedupLevel()),
+        deduplicationLevel(argumentsParser.getDeduplicationLevel()),
         depth(argumentsParser.getDepth()),
         systemStart(argumentsParser.getSystemStart()),
         systemEnd(argumentsParser.getSystemEnd()),

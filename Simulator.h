@@ -28,7 +28,7 @@ private:
                                   "M fraction,Replication "
                                   "fraction,Iteration time,File\n";
     string filePath;
-    string dedupLevel;
+    string deduplicationLevel;
     string depth;
     string systemStart;
     string systemEnd;
@@ -41,7 +41,6 @@ private:
     static void exportSummary(System::GreedyOutput& o);
     static void exportOutput(System::GreedyOutput& o);
     static string extendedOutputName(System::GreedyOutput& o);
-    static std::experimental::filesystem::path extendedOutputPath(System::GreedyOutput& o);
     static void exportExtendedOutput(System::GreedyOutput& o);
     static bool fileExists(std::experimental::filesystem::path& path);
 

@@ -199,7 +199,7 @@ System::GreedyOutput System::greedy(System &target){
         clock_t iterationBegin = clock();
         GreedyIterationStats iteration;
         iteration.iteration = iterationNum;
-        double bestSavingRatio = DBL_MAX, bestReclaim = 0;
+        double bestSavingRatio = DBL_MAX;
         bestReclaimId = -1;
         for(int i=0; i<filesArraySize; i++){
             if(files[i]){
@@ -210,7 +210,6 @@ System::GreedyOutput System::greedy(System &target){
                 if(savingRatio < bestSavingRatio){
                     bestReclaimId = i;
                     bestSavingRatio = savingRatio;
-                    bestReclaim = currentReclaim;
                 }
             }
         }

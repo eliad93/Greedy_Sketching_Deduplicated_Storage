@@ -24,7 +24,7 @@ private:
     static const unsigned int numArgs = 8;
 
     static const int argFile = 1;
-    static const int argDedupLevel = 2;
+    static const int argDeduplicationLevel = 2;
     static const int argDepth = 3;
     static const int argSystemStart = 4;
     static const int argSystemEnd = 5;
@@ -51,8 +51,8 @@ public:
         return arguments[argFile];
     }
 
-    const string &getDedupLevel() const {
-        return arguments[argDedupLevel];
+    const string &getDeduplicationLevel() const {
+        return arguments[argDeduplicationLevel];
     }
 
     const string &getDepth() const {
