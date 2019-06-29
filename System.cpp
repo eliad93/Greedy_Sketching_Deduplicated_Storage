@@ -245,9 +245,6 @@ System::GreedyOutput System::greedy(System &target){
 
 string System::getFileName(const string& path) {
     char sep = '/';
-//#ifdef _WIN32
-//    sep = '\\';
-//#endif
     size_t i = path.rfind(sep, path.length());
     if (i != string::npos) {
         string fullname = path.substr(i+1, path.length() - i);
