@@ -99,7 +99,12 @@ double System::calculateReclaimable(System& full){
     }
     return reclaimable;
 }
-
+/*
+ * calculating the space reclamation in this by removing file from it.
+ * algorithm: iterate over all block of file, add 1 to the sum
+ * for each block that the reference count of block in file
+ * is equal to the reference count of block in this.
+ */
 double System::calculateReclaimable(File& file){
     double reclaimable = 0;
     for(auto& block: file){ // block is a pair {blockId, refCount}
@@ -122,7 +127,12 @@ double System::calculateSpaceInTargetSystem(System& target){
     }
     return targetSpace;
 }
-
+/*
+ * calculating the space required in this - (the target system)
+ * in order to migrate file into it.
+ * algorithm: iterate over all block of file, add 1 to the sum
+ * for each block that is not in this - (the target system)
+ */
 double System::calculateSpaceInTargetSystem(File& file){
     double targetSpace = 0;
     for(auto& block: file){ // block is a pair {blockId, refCount}
@@ -182,7 +192,19 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
     }
     return unsolvedPairs.empty();
 }
-
+/*
+ * simulation of migration from this to target.
+ * migrates file by file - at each iteration it pick
+ * a file with best saving ratio according to the estimation
+ * algorithms and migrates it to target.
+ * it works on a set of combinations of M, epsilon pairs
+ * where the migration reclamation - m is constrained
+ * as follows: M-e <= m <= M+e
+ * it checks each iteration if it solved any of the pairs
+ * and stored the solution information or it is valid that
+ * a pair canno't be solved i.e. m > M+e.
+ * the algorithm stops if it has no more pairs to check against.
+ */
 System::GreedyOutput System::greedy(System &target){
     clock_t greedyBegin = clock();
     double reclaimed = 0, replicatedSize = 0, replicated = 0, moved = 0;
