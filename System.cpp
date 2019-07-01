@@ -245,8 +245,8 @@ System::GreedyOutput System::greedy(System &target){
             iteration.moved = moved - prevMoved;
             iteration.copied = replicated - prevCopied;
             iteration.fileId = bestReclaimId;
-            greedySummaryUnique.replicationFraction = replicatedSize;
-            greedySummaryUnique.replication = replicated;
+            greedySummaryUnique.replicationFraction = replicated;
+            greedySummaryUnique.replication = replicatedSize;
             greedySummaryUnique.MFractionActual = moved;
             greedySummaryUnique.MActual = reclaimed;
         }
