@@ -333,7 +333,6 @@ void System::addVolume(int fileId, File* file){
     if(!file){
         return;
     }
-    double replicated = 0;
     files[fileId] = file;
     for(auto& iter: *file){
         bool blockFound = iter.second;
@@ -342,9 +341,6 @@ void System::addVolume(int fileId, File* file){
             assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
                    blocks[blockId] >= 0);
             blocks[blockId]++;
-            if(blocks[blockId] == 1){
-                replicated++;
-            }
         }
     }
 }
