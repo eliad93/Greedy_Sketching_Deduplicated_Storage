@@ -202,7 +202,7 @@ bool System::isFinalState(double moved, GreedyOutput& greedyOutput,
  * as follows: M-e <= m <= M+e
  * it checks each iteration if it solved any of the pairs
  * and stored the solution information or it is valid that
- * a pair canno't be solved i.e. m > M+e.
+ * a pair can't be solved i.e. m > M+e.
  * the algorithm stops if it has no more pairs to check against.
  */
 System::GreedyOutput System::greedy(System &target){
@@ -303,8 +303,10 @@ void System::migrateVolume(System& target, int fileId,
             blocks[blockId]--;
             if(blocks[blockId] == 0){
                 numMoved++;
+                cout << "numMoved++ " + std::to_string(blockId) << endl;
             } else {
                 numReplicated++;
+                cout << "numReplicated++ " + std::to_string(blockId) << endl;
             }
         }
     }
