@@ -301,24 +301,39 @@ void System::migrateVolume(System& target, int fileId,
             assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
                    blocks[blockId]>0);
             blocks[blockId]--;
-            if(blocks[blockId] == 0){
-                numMoved++;
-                cout << "numMoved++ " + std::to_string(blockId) << endl;
-            } else {
-                numReplicated++;
-                cout << "numReplicated++ " + std::to_string(blockId) << endl;
-            }
         }
     }
     target.addVolume(fileId, file);
+    this->calculateMoveReplicated(target, numMoved, numReplicated);
     files[fileId] = nullptr;
 }
+
+void System::calculateMoveReplicated(System& target, double& numMoved,
+        double& numReplicated){
+    numMoved = 0;
+    numReplicated = 0;
+    for(int i=0; i < blocksArraySize; i++){
+        if(blocks[i] == 0 && target.blocks[i] > 0){
+            numMoved++;
+        }
+        if(blocks[i] > 0 && target.blocks[i] > 0){
+            numReplicated++;
+        }
+    }
+}
+
+/**
+ * src.blocks[i] == 0 && dst.blocks[i] > 0 ==> moved++
+ * src.blocks[i] > 0 && dst.blocks[i] > 0 ==> replicated++
+ *
+ */
 
 void System::addVolume(int fileId, File* file){
     assert(fileId >= 0 && fileId + 1 <= filesArraySize);
     if(!file){
         return;
     }
+    double replicated = 0;
     files[fileId] = file;
     for(auto& iter: *file){
         bool blockFound = iter.second;
@@ -327,6 +342,9 @@ void System::addVolume(int fileId, File* file){
             assert(blockId >= 0 && blockId + 1 <= blocksArraySize &&
                    blocks[blockId] >= 0);
             blocks[blockId]++;
+            if(blocks[blockId] == 1){
+                replicated++;
+            }
         }
     }
 }

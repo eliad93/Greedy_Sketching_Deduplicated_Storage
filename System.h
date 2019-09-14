@@ -242,6 +242,9 @@ private:
     set<pair<double, double>> unsolvedPairs;
     set<pair<double, double>> solvedPairs;
     set<pair<double, double>> failedPairs;
+
+    void calculateMoveReplicated(System &target, double &numMoved,
+                                 double &numReplicated);
 };
 
 
