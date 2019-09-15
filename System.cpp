@@ -67,7 +67,7 @@ void System::initAllPairs(){
 
 System::~System(){
     if(files){
-        for(int i=0; i<filesArraySize; i++){
+        for(unsigned int i=0; i<filesArraySize; i++){
             if(files[i]){
                 delete files[i];
             }
@@ -209,6 +209,7 @@ System::GreedyOutput System::greedy(System &target){
     clock_t greedyBegin = clock();
     double reclaimed = 0, replicatedSize = 0, replicated = 0, moved = 0;
     int bestReclaimId = 0, iterationNum = 0;
+    clock_t iterationEnd, iterationBegin;
     string fileName = getFileName(path);
     GreedyOutput output(fileName,
             K, depth, systemStart, systemEnd, filesArraySize, blocksArraySize,
@@ -218,7 +219,7 @@ System::GreedyOutput System::greedy(System &target){
     while(bestReclaimId != -1 && !isFinalState(moved, output,
             greedySummaryUnique)){
         iterationNum++;
-        clock_t iterationBegin = clock();
+        iterationBegin = clock();
         GreedyIterationStats iteration;
         iteration.iteration = iterationNum;
         double bestSavingRatio = DBL_MAX;
@@ -236,8 +237,9 @@ System::GreedyOutput System::greedy(System &target){
             }
         }
         if(bestReclaimId != -1){
-            migrateVolume(target, bestReclaimId,
-                    reclaimed, replicatedSize);
+            migrateVolume(target, bestReclaimId);
+            this->calculateMoveReplicated(target, reclaimed,
+                    replicatedSize);
             double prevMoved = moved;
             double prevCopied = replicated;
             moved = 100 * reclaimed / blocksArraySize;
@@ -250,7 +252,7 @@ System::GreedyOutput System::greedy(System &target){
             greedySummaryUnique.MFractionActual = moved;
             greedySummaryUnique.MActual = reclaimed;
         }
-        clock_t iterationEnd = clock();
+        iterationEnd = clock();
         iteration.sourceSize = 100 * (blocksArraySize - reclaimed) / blocksArraySize;
         iteration.destinationSize = moved;
         iteration.iterationTime =
@@ -284,8 +286,7 @@ string System::getFileName(const string& path) {
     return("");
 }
 
-void System::migrateVolume(System& target, int fileId,
-        double& numMoved, double& numReplicated){
+void System::migrateVolume(System &target, int fileId) {
     assert(fileId >= 0);
     if(fileId + 1 > filesArraySize){
         return;
@@ -304,7 +305,6 @@ void System::migrateVolume(System& target, int fileId,
         }
     }
     target.addVolume(fileId, file);
-    this->calculateMoveReplicated(target, numMoved, numReplicated);
     files[fileId] = nullptr;
 }
 
@@ -312,7 +312,7 @@ void System::calculateMoveReplicated(System& target, double& numMoved,
         double& numReplicated){
     numMoved = 0;
     numReplicated = 0;
-    for(int i=0; i < blocksArraySize; i++){
+    for(unsigned int i=0; i < blocksArraySize; i++){
         if(blocks[i] == 0 && target.blocks[i] > 0){
             numMoved++;
         }

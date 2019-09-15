@@ -200,8 +200,7 @@ public:
     double calculateSpaceInTargetSystem(System& target);
     double calculateSpaceInTargetSystem(File& file);
     GreedyOutput greedy(System &target);
-    void migrateVolume(System& target, int fileId, double& numMoved,
-            double& numReplicated);
+    void migrateVolume(System &target, int fileId);
     void addVolume(int fileId, File* file);
     /*
      * Simple getters
